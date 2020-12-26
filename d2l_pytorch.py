@@ -97,3 +97,12 @@ def one_hot(x, n_class, dtype=torch.float32):
 
 def to_onehot(X, n_class):
     return [one_hot(X[:, i], n_class) for i in range(X.shape[1])]
+
+def grad_clipping(params, theta, device):
+    norm = torch.tensor([0.0], device=device)
+    for param in params:
+        norm += (param.grad.data ** 2).sum()
+    norm = norm.sqrt().item()
+    if norm > theta:
+        for param in params:
+            param.grad.data *= (theta / norm)
