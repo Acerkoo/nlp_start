@@ -50,8 +50,11 @@ def train_and_prefix_rnn_pytorch(prefixes, seq_len, model, device, word2idx, idx
         l_sum, n, start = 0.0, 0, time.time()
 
         for X, Y in data_iter:
-            # if state is not None:
-            #     state = state.detach()
+            if state is not None:
+                if isinstance(state, tuple):
+                    state = (state[0].detach(), state[1].detach())
+                else:
+                    state = state.detach()
             # if state is not None:
             #     print(state.requires_grad)
             (output, state) = model(X, state)
