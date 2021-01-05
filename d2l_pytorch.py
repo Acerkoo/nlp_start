@@ -1,4 +1,6 @@
+import collections
 import math
+import os
 import random
 import time
 
@@ -7,7 +9,11 @@ import torchvision
 from IPython import display
 from matplotlib import pyplot as plt, transforms
 from torch import nn
+from tqdm import tqdm
+from torchtext import vocab as Vocab
 
+Data_Root_server = '/home/sunzengkui/Datasets/'
+Data_Root_szki = '/Users/szki/Code/Datasets/'
 
 def sgd(params, lr, batch_size):
     for param in params:
@@ -192,3 +198,77 @@ def train_and_predict_rnn_pytorch(model, num_hiddens, vocab_size, device,
                 print(' -', predict_rnn_pytorch(
                     prefix, pred_len, model, vocab_size, device, idx_to_char,
                     char_to_idx))
+
+def read_imdb(folder='train', data_root=Data_Root_server):
+    data_root += 'aclImdb'
+    data = []
+    for label in ['pos', 'neg']:
+        folder_name = os.path.join(data_root, folder, label)
+        for file in tqdm(os.listdir(folder_name)):
+            with open(os.path.join(folder_name, file), 'rb') as f:
+                review = f.read().decode('utf-8').replace('\n', ' ').replace('\r', ' ').lower()
+                data.append([review, 1 if label == 'pos' else 0])
+    random.shuffle(data)
+    return data
+
+def get_tokenized_imdb(data):
+    """
+    :param data: list of [string, label]
+    :return:
+    """
+    def tokenizer(text):
+        return [tok.lower() for tok in text.split(' ')]
+    return [tokenizer(review) for review, _ in data]
+
+def get_vocab_imdb(data):
+    tokenized_data = get_tokenized_imdb(data)
+    counter = collections.Counter([tk for st in tokenized_data for tk in st])
+    return Vocab.Vocab(counter, min_freq=5)
+
+def preprocess_imdb(data, vocab):
+    max_l = 500
+
+    def pad(x):
+        return x[:max_l] if int(len(x)) > max_l else x + [0] * (max_l - int(len(x)))
+
+    tokenized_data = get_tokenized_imdb(data)
+    features = torch.tensor([pad([vocab.stoi[word] for word in words]) for words in tokenized_data])
+    labels = torch.tensor([score for _, score in data])
+    return features, labels
+
+def train(net, lr, num_epochs):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print("train on", device)
+    net = net.to(device)
+    optimizer = torch.optim.Adam(net.parameters(), lr=lr)
+    for epoch in range(num_epochs):
+        start, l_sum, n = time.time(), 0.0, 0
+        for batch in data_iter:
+            center, context_negative, mask, label = [d.to(device) for d in batch]
+
+            pred = skip_gram(center, context_negative, net[0], net[1])
+
+            # 使用掩码变量mask来避免填充项对损失函数计算的影响
+            l = (loss(pred.view(label.shape), label, mask) *
+                 mask.shape[1] / mask.float().sum(dim=1)).mean() # 一个batch的平均loss
+            optimizer.zero_grad()
+            l.backward()
+            optimizer.step()
+            l_sum += l.cpu().item()
+            n += 1
+        print('epoch %d, loss %.2f, time %.2fs'
+              % (epoch + 1, l_sum / n, time.time() - start))
+
+def load_pretrained_embedding(words, pretrained_vocab):
+    """从预训练好的vocab中提取出words对应的词向量"""
+    embed = torch.zeros(len(words), pretrained_vocab.vectors[0].shape[0]) # 初始化为0
+    oov_count = 0 # out of vocabulary
+    for i, word in enumerate(words):
+        try:
+            idx = pretrained_vocab.stoi[word]
+            embed[i, :] = pretrained_vocab.vectors[idx]
+        except KeyError:
+            oov_count += 1
+    if oov_count > 0:
+        print("There are %d oov words." % oov_count)
+    return embed
