@@ -74,9 +74,11 @@ class BiRNN(nn.Module):
     def forward(self, inputs):
         # inputs的形状是(批量大小, 词数)，因为LSTM需要将序列长度(seq_len)作为第一维，所以将输入转置后
         # 再提取词特征，输出形状为(词数, 批量大小, 词向量维度)
-        # print(inputs.shape)
+        # print('inputs\' shape', inputs.shape)
         embeddings = self.embedding(inputs.permute(1, 0))
+        # print('embeddings\' shape',embeddings.shape)
         # rnn.LSTM只传入输入embeddings，因此只返回最后一层的隐藏层在各时间步的隐藏状态。
+        # rnn.LSTM 输入 [词数, 批量大小, 维度]
         # outputs形状是(词数, 批量大小, 2 * 隐藏单元个数)
         outputs, _ = self.encoder(embeddings)  # output, (h, c)
         # 连结初始时间步和最终时间步的隐藏状态作为全连接层输入。它的形状为
@@ -170,6 +172,6 @@ if __name__ == '__main__':
 
     train(train_iter, test_iter, net, loss, optimizer, device, num_epochs)
 
-    predict_sentiment(net, vocab, ['this', 'movie', 'is', 'so', 'great'])  # positive
+    print(predict_sentiment(net, vocab, ['this', 'movie', 'is', 'so', 'great']))  # positiveS
 
-    predict_sentiment(net, vocab, ['this', 'movie', 'is', 'so', 'bad'])  # negative
+    print(predict_sentiment(net, vocab, ['this', 'movie', 'is', 'so', 'bad']))  # negative
