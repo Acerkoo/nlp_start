@@ -154,8 +154,8 @@ if __name__ == '__main__':
     vocab = get_vocab_imdb(train_data)
 
     batch_size = 64
-    train_set = Data.TensorDataset(*d2l.preprocess_imdb(train_data, vocab))
-    test_set = Data.TensorDataset(*d2l.preprocess_imdb(test_data, vocab))
+    train_set = Data.TensorDataset(*preprocess_imdb(train_data, vocab))
+    test_set = Data.TensorDataset(*preprocess_imdb(test_data, vocab))
     train_iter = Data.DataLoader(train_set, batch_size, shuffle=True)
     test_iter = Data.DataLoader(test_set, batch_size)
 
