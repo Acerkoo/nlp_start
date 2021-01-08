@@ -236,29 +236,6 @@ def preprocess_imdb(data, vocab):
     labels = torch.tensor([score for _, score in data])
     return features, labels
 
-def train(net, lr, num_epochs):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print("train on", device)
-    net = net.to(device)
-    optimizer = torch.optim.Adam(net.parameters(), lr=lr)
-    for epoch in range(num_epochs):
-        start, l_sum, n = time.time(), 0.0, 0
-        for batch in data_iter:
-            center, context_negative, mask, label = [d.to(device) for d in batch]
-
-            pred = skip_gram(center, context_negative, net[0], net[1])
-
-            # 使用掩码变量mask来避免填充项对损失函数计算的影响
-            l = (loss(pred.view(label.shape), label, mask) *
-                 mask.shape[1] / mask.float().sum(dim=1)).mean() # 一个batch的平均loss
-            optimizer.zero_grad()
-            l.backward()
-            optimizer.step()
-            l_sum += l.cpu().item()
-            n += 1
-        print('epoch %d, loss %.2f, time %.2fs'
-              % (epoch + 1, l_sum / n, time.time() - start))
-
 def load_pretrained_embedding(words, pretrained_vocab):
     """从预训练好的vocab中提取出words对应的词向量"""
     embed = torch.zeros(len(words), pretrained_vocab.vectors[0].shape[0]) # 初始化为0
