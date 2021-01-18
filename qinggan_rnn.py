@@ -124,9 +124,9 @@ def train(train_iter, test_iter, net, loss, optimizer, device, num_epochs):
     for epoch in range(num_epochs):
         train_l_sum, train_acc_sum, n, start = 0.0, 0.0, 0, time.time()
         for X, y in train_iter:
-            if batch_count == 0:
-                print(X.shape)
-                print(y.shape)
+            # if batch_count == 0:
+            #     print(X.shape)
+            #     print(y.shape)
             X = X.cuda()
             y = y.cuda()
             y_hat = net(X)
